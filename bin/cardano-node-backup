@@ -5,7 +5,8 @@
 # backups directory. Additionally, it deletes older backups to
 # conserve disk space.
 
-name="/tmp/mainnet-db-$(date +%s).tar"
+timestamp=$(date +%s)
+name="/tmp/mainnet-db-$timestamp.tar"
 
 # Pause cardano-node, take a snapshot, then restart
 systemctl stop cardano-node
@@ -32,3 +33,4 @@ done
 
 # Save the backup
 mv "$name.lz4" .
+echo -n "$timestamp" > latest.txt
