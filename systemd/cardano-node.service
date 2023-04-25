@@ -1,0 +1,31 @@
+# This systemd service file is for running a cardano-node
+# using Docker.
+
+[Unit]
+Description=cardano-node
+Requires=docker.service
+After=docker.service network-online.target
+PartOf=docker.service
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+ExecStartPre=-/usr/bin/docker stop cardano-node
+ExecStartPre=-/usr/bin/docker rm cardano-node
+ExecStartPre=/usr/bin/docker pull inputoutput/cardano-node
+ExecStartPre=/usr/bin/docker volume create cardano-node-data
+ExecStartPre=/usr/bin/docker volume create cardano-node-ipc
+ExecStartPre=-rm -f /var/lib/docker/volumes/cardano-node-ipc/_data/node.socket
+ExecStart=/usr/bin/docker run --rm --name cardano-node \
+    -e NETWORK=mainnet \
+    -v cardano-node-ipc:/ipc \
+    -v cardano-node-data:/data \
+    inputoutput/cardano-node
+ExecStop=/usr/bin/docker stop cardano-node
+ExecStartPost=/bin/bash -c "until /usr/bin/docker inspect -f {{.State.Running}} cardano-node | grep true; do sleep 1; done"
+ExecStartPost-=/usr/bin/systemctl start cardano-node-permissions
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+# This script temporarily pauses the cardano-node to create a
+# snapshot, compresses the snapshot, and saves it locally in the
+# backups directory. Additionally, it deletes older backups to
+# conserve disk space.
+
+name="/tmp/mainnet-db-$(date +%s).tar"
+
+# Pause cardano-node, take a snapshot, then restart
+systemctl stop cardano-node
+tar -cf "$name" -C / \
+    var/lib/docker/volumes/cardano-node-data/_data/db
+systemctl start cardano-node
+
+# Compress snapshot
+lz4 "$name" "$name.lz4"
+rm -f "$name"
+
+# Delete old backups
+dir_path="/var/backups/cardanonode"
+mkdir -p "$dir_path"
+cd "$dir_path" || exit
+counter=0
+for file in mainnet-db-*.tar.lz4; do
+    [ -e "$file" ] || continue
+    ((counter++))
+    if [ "$counter" -gt 1 ]; then
+        rm -f "$file"
+    fi
+done
+
+# Save the backup
+mv "$name.lz4" .

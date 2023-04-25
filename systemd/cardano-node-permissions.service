@@ -1,0 +1,16 @@
+# This systemd service file sets the socket permissions for the
+# cardano-node service and ensures that the permissions are
+# properly set after cardano-node service starts.
+
+[Unit]
+Description=cardano-node socket permissions
+After=cardano-node.service
+Wants=cardano-node.service
+
+[Service]
+Restart=always
+RestartSec=5
+ExecStart=/usr/local/bin/set-cardano-node-permissions
+
+[Install]
+WantedBy=multi-user.target

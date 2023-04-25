@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# This process configures the cardano-node socket permission to
+# grant access to users in the docker group. The purpose is to
+# enable non-root users to utilize cardano-node and create SSH
+# tunnels. Due to cardano-node's internal resetting of socket
+# permissions, setting them within the Docker container is
+# ineffective. This script, however, establishes permissions on
+# the host resiliently.
+
+socket="/var/lib/docker/volumes/cardano-node-ipc/_data/node.socket"
+
+while true; do
+    while ! [ -e "$socket" ]; do
+        sleep 1
+    done
+
+    chmod 750 /var/lib/docker
+    chmod 751 /var/lib/docker/volumes
+    chmod 751 /var/lib/docker/volumes/cardano-node-ipc
+    chmod 775 /var/lib/docker/volumes/cardano-node-ipc/_data/node.socket
+    chown root:docker /var/lib/docker
+    chown root:docker /var/lib/docker/volumes
+    chown root:docker /var/lib/docker/volumes/cardano-node-ipc
+    chown root:docker /var/lib/docker/volumes/cardano-node-ipc/_data
+    chown root:docker /var/lib/docker/volumes/cardano-node-ipc/_data/node.socket
+
+    sleep 60
+done
