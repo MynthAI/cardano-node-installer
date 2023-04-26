@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Restores cardano-node from the latest backup
+
 set -e
 
 if [ "$#" -ne 1 ]; then

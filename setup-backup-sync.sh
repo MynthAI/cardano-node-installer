@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Configure backups to be synced with KeyCDN
+
 set -e
 
 if [ "$#" -ne 3 ]; then
