@@ -10,8 +10,8 @@ name="/tmp/mainnet-db-$timestamp.tar"
 
 # Pause cardano-node, take a snapshot, then restart
 systemctl stop cardano-node
-tar -cf "$name" -C / \
-    var/lib/docker/volumes/cardano-node-data/_data/db
+tar -cf "$name" -C \
+    /var/lib/docker/volumes/cardano-node-data/_data db
 systemctl start cardano-node
 
 # Compress snapshot

@@ -19,7 +19,8 @@ echo "Download complete"
 sudo systemctl stop cardano-node
 sudo rm -rf /var/lib/docker/volumes/cardano-node-data/_data/db
 echo "Cleared cardano-node data. Extracting backup"
-lz4 -dc "mainnet-db-$latest.tar.lz4" | sudo tar -xvf - -C /
+lz4 -dc "mainnet-db-$latest.tar.lz4" | sudo tar -xvf - -C \
+    /var/lib/docker/volumes/cardano-node-data/_data
 echo "Backup restore complete"
 sudo systemctl start cardano-node
 rm -f "mainnet-db-$latest.tar.lz4"
