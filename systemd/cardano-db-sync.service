@@ -1,0 +1,33 @@
+# This systemd service file is for running cardano-db-sync
+# using Docker.
+
+[Unit]
+Description=cardano-db-sync
+Requires=docker.service
+After=docker.service network-online.target
+After=cardano-node.service
+Wants=cardano-node.service
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+ExecStartPre=-/usr/bin/docker stop cardano-db-sync
+ExecStartPre=-/usr/bin/docker rm cardano-db-sync
+ExecStartPre=/usr/bin/docker pull inputoutput/cardano-db-sync
+ExecStartPre=/usr/bin/docker volume create cardano-db-sync-data
+ExecStart=/usr/bin/docker run --rm --name cardano-db-sync \
+    --network=host \
+    -e NETWORK=mainnet \
+    -e POSTGRES_HOST=127.0.0.1 \
+    -e POSTGRES_PORT=5432 \
+    -v cardano-node-ipc:/node-ipc \
+    -v cardano-db-sync-data:/var/lib/cexplorer \
+    -v /root/secrets:/run/secrets \
+    inputoutput/cardano-db-sync
+ExecStop=/usr/bin/docker stop cardano-db-sync
+ExecStartPost=/bin/bash -c "until /usr/bin/docker inspect -f {{.State.Running}} cardano-db-sync | grep true; do sleep 1; done"
+
+[Install]
+WantedBy=multi-user.target
