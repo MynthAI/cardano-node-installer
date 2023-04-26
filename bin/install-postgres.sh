@@ -8,28 +8,41 @@ sudo apt-get install -y postgresql postgresql-contrib
 sudo systemctl enable postgresql
 sudo systemctl start postgresql
 
+psql() {
+    sudo -i -u postgres psql -c "${1}"
+}
+
+save() {
+    sudo tee "$2" <<< "$1" > /dev/null
+}
+
+conf() {
+    sudo sed -i "s/#$1/g" /etc/postgresql/*/main/postgresql.conf
+}
+
 # Generate random password
-POSTGRES_PASSWORD="$(openssl rand -base64 30)"
+password="$(openssl rand -base64 30)"
 
 # Create a .pgpass file to store the credentials
-PGPASS_FILE="/root/.pgpass"
-sudo tee "${PGPASS_FILE}" <<< "localhost:*:*:postgres:${POSTGRES_PASSWORD}" > /dev/null
-sudo chmod 600 "${PGPASS_FILE}"
+pgpass="/root/.pgpass"
+save "localhost:*:*:postgres:${password}" "${pgpass}"
+sudo chmod 600 "${pgpass}"
 
 # Set the password for the 'postgres' user
-sudo -i -u postgres psql -c "ALTER USER postgres WITH PASSWORD '${POSTGRES_PASSWORD}';"
+psql "ALTER USER postgres WITH PASSWORD '${password}';"
 
 # Configure Postgres for production use
-sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#log_destination = 'stderr'/log_destination = 'csvlog'/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#logging_collector = off/logging_collector = on/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'/log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#log_truncate_on_rotation = off/log_truncate_on_rotation = on/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#log_rotation_age = 1d/log_rotation_age = 1d/g" /etc/postgresql/*/main/postgresql.conf
-sudo sed -i "s/#log_rotation_size = 10MB/log_rotation_size = 10MB/g" /etc/postgresql/*/main/postgresql.conf
+conf "listen_addresses = 'localhost'/listen_addresses = '*'"
+conf "log_destination = 'stderr'/log_destination = 'csvlog'"
+conf "logging_collector = off/logging_collector = on"
+conf "log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'/log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'"
+conf "log_truncate_on_rotation = off/log_truncate_on_rotation = on"
+conf "log_rotation_age = 1d/log_rotation_age = 1d"
+conf "log_rotation_size = 10MB/log_rotation_size = 10MB"
 
 # Allow connections from any IP address
-echo "host all all 0.0.0.0/0 md5" | sudo tee -a /etc/postgresql/*/main/pg_hba.conf > /dev/null
+sudo tee -a /etc/postgresql/*/main/pg_hba.conf <<< \
+    "host all all 0.0.0.0/0 md5" > /dev/null
 
 # Restart the Postgres service to apply the changes
 sudo systemctl restart postgresql
@@ -38,11 +51,11 @@ sudo systemctl restart postgresql
 database="db_$(openssl rand -hex 4)"
 username="user_$(openssl rand -hex 4)"
 password="$(openssl rand -base64 30)"
-sudo -i -u postgres psql -c "CREATE USER ${username} WITH PASSWORD '${password}';"
-sudo -i -u postgres psql -c "CREATE DATABASE ${database} OWNER ${username};"
-sudo -i -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${database} TO ${username};"
+psql "CREATE USER ${username} WITH PASSWORD '${password}';"
+psql "CREATE DATABASE ${database} OWNER ${username};"
+psql "GRANT ALL PRIVILEGES ON DATABASE ${database} TO ${username};"
 
 sudo mkdir -p /root/secrets
-sudo tee /root/secrets/postgres_db <<< "$database" > /dev/null
-sudo tee /root/secrets/postgres_user <<< "$username" > /dev/null
-sudo tee /root/secrets/postgres_password <<< "$password" > /dev/null
+save "$database" /root/secrets/postgres_db
+save "$username" /root/secrets/postgres_user
+save "$password" /root/secrets/postgres_password
